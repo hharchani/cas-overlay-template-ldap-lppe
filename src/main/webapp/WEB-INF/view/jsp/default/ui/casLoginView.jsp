@@ -71,6 +71,7 @@
                             spellcheck="false"
                             tabindex="1"
                             type="text"/>
+
                     </c:otherwise>
                 </c:choose>
             </label>
