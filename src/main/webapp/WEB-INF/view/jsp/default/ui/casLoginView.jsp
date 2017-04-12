@@ -58,16 +58,19 @@
                     <c:otherwise>
                         <spring:message code="screen.welcome.label.netid.accesskey" var="userNameAccessKey" />
                         <form:input
+                            accesskey="${userNameAccessKey}"
+                            autocomplete="email"
+                            autocapitalize="off"
+                            autocorrect="off"
                             cssClass="required"
                             cssErrorClass="error"
-                            id="username"
-                            tabindex="1"
-                            accesskey="${userNameAccessKey}"
-                            path="username"
-                            autocomplete="off"
                             htmlEscape="true"
-                            type="email"
-                            required="required"/>
+                            id="username"
+                            path="username"
+                            required="required"
+                            spellcheck="false"
+                            tabindex="1"
+                            type="text"/>
                     </c:otherwise>
                 </c:choose>
             </label>
@@ -213,5 +216,5 @@
 --%>
 
 <spring:theme code="cas.javascript.file" var="casJavascriptFile" text="" />
-<script type="text/javascript" src="<c:url value="${casJavascriptFile}" />"></script>
+<script type="text/javascript" src="<c:url value="${casJavascriptFile}" />?v=2"></script>
 <jsp:directive.include file="includes/bottom.jsp" />
