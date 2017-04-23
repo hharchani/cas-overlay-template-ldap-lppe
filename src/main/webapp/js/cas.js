@@ -1,3 +1,62 @@
+/**
+ * Shim for String.prototype.startsWith
+ * https://github.com/mathiasbynens/String.prototype.startsWith
+ */
+if (!String.prototype.startsWith) {
+	(function() {
+		'use strict'; // needed to support `apply`/`call` with `undefined`/`null`
+		var defineProperty = (function() {
+			// IE 8 only supports `Object.defineProperty` on DOM elements
+			try {
+				var object = {};
+				var $defineProperty = Object.defineProperty;
+				var result = $defineProperty(object, object, object) && $defineProperty;
+			} catch(error) {}
+			return result;
+		}());
+		var toString = {}.toString;
+		var startsWith = function(search) {
+			if (this == null) {
+				throw TypeError();
+			}
+			var string = String(this);
+			if (search && toString.call(search) == '[object RegExp]') {
+				throw TypeError();
+			}
+			var stringLength = string.length;
+			var searchString = String(search);
+			var searchLength = searchString.length;
+			var position = arguments.length > 1 ? arguments[1] : undefined;
+			// `ToInteger`
+			var pos = position ? Number(position) : 0;
+			if (pos != pos) { // better `isNaN`
+				pos = 0;
+			}
+			var start = Math.min(Math.max(pos, 0), stringLength);
+			// Avoid the `indexOf` call if no match is possible
+			if (searchLength + start > stringLength) {
+				return false;
+			}
+			var index = -1;
+			while (++index < searchLength) {
+				if (string.charCodeAt(start + index) != searchString.charCodeAt(index)) {
+					return false;
+				}
+			}
+			return true;
+		};
+		if (defineProperty) {
+			defineProperty(String.prototype, 'startsWith', {
+				'value': startsWith,
+				'configurable': true,
+				'writable': true
+			});
+		} else {
+			String.prototype.startsWith = startsWith;
+		}
+	}());
+}
+
 (function() {
     /**
      * Utility for Cookies
@@ -65,48 +124,67 @@
         return true;
     };
 
-    var emailDomains = [
-        'iiit.ac.in',
-        'students.iiit.ac.in',
-        'research.iiit.ac.in',
-    ];
-    var onLoad = function() {
-        var emailBox = document.getElementById('username');
-        var passwordBox = document.getElementById('password');
-        var capslockOnMessage = document.getElementById('capslock-on');
+    var setupEmailAutocomplete = function () {
+        var element = document.getElementsByTagName('username')[0];
+        var emailDomains = [
+            'iiit.ac.in',
+            'students.iiit.ac.in',
+            'research.iiit.ac.in',
+        ];
+        var oldValue = '';
+        var autoCompleteDomainName = function(e) {
+            var parts = element.value.split('@');
+            var username = parts[0] || '';
+            var newValue = parts[1] || '';
+            if (newValue && newValue.length > oldValue.length) {
+                var allowed = emailDomains.filter(function(domain) {
+                    return domain.startsWith(newValue);
+                });
+                if (allowed.length == 1) {
+                    var domain = allowed[0];
+                    var partToAdd = domain.replace(newValue, '');
+                    element.value = username + '@' + domain;
+                    element.focus();
+                    setTimeout(function() {
+                        element.setSelectionRange(
+                            element.value.length - partToAdd.length,
+                            element.value.length
+                        );
+                    }, 0);
+                }
+            }
+            oldValue = newValue;
+        };
+        var setOldValue = function () {
+            oldValue = element.value.split('@')[1] || '';
+        };
+        element.addEventListener('input', autoCompleteDomainName);
+        element.addEventListener('change', setOldValue);
+        element.addEventListener('focus', setOldValue);
+        element.addEventListener('click', setOldValue);
+        element.focus();
+    };
 
-        // Check if cookies is disabled
+    var setupCheckForCapslock = function () {
+        var capslockOnMessage = document.getElementById('capslock-on');
+        document
+            .getElementById('password')
+            .addEventListener('keypress', function(e) {
+                var s = String.fromCharCode( e.which );
+                if ( s.toUpperCase() === s && s.toLowerCase() !== s && !e.shiftKey ) {
+                    capslockOnMessage.style.display = 'inline';
+                } else {
+                    capslockOnMessage.style.display = 'none';
+                }
+            });
+    };
+
+    var onLoad = function() {
         if (areCookiesDisabled()) {
             document.getElementById('cookiesDisabled').style.display = 'block';
         }
-
-        // Focus email textbox
-        emailBox.focus();
-
-        // Autocomplete email domain
-        emailBox.addEventListener('keyup', function (e) {
-            if ((e.which >= 'A'.charCodeAt(0) && e.which <= 'Z'.charCodeAt(0) )
-            || (e.which >= 'a'.charCodeAt(0) && e.which <= 'z'.charCodeAt(0) )) {
-                var reg = new RegExp('^' + emailBox.value.split('@')[1]);
-                var allowed = emailDomains.filter(function(domain) {
-                    return reg.test(domain);
-                });
-                if (allowed.length == 1) {
-                    emailBox.value = emailBox.value.split('@')[0] + '@' + allowed[0];
-                    passwordBox.focus();
-                }
-            }
-        });
-
-        // Show warning if capslock is on
-        passwordBox.addEventListener('keypress', function(e) {
-            var s = String.fromCharCode( e.which );
-            if ( s.toUpperCase() === s && s.toLowerCase() !== s && !e.shiftKey ) {
-                capslockOnMessage.style.display = 'inline';
-            } else {
-                capslockOnMessage.style.display = 'none';
-            }
-        });
+        setupEmailAutocomplete();
+        setupCheckForCapslock();
     };
 
     window.addEventListener('load', onLoad);
