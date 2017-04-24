@@ -125,7 +125,7 @@ if (!String.prototype.startsWith) {
     };
 
     var setupEmailAutocomplete = function () {
-        var element = document.getElementsByTagName('username')[0];
+        var element = document.getElementById('username');
         var emailDomains = [
             'iiit.ac.in',
             'students.iiit.ac.in',
